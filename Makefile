@@ -74,7 +74,7 @@ npm_licenses: $(REACT_APP_NODE_MODULES_PATH)
 tarball: npm_licenses common-tarball
 
 .PHONY: docker
-docker: npm_licenses common-docker
+docker: common-docker
 
 .PHONY: build
 build: assets common-build

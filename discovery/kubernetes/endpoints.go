@@ -50,6 +50,41 @@ type Endpoints struct {
 	queue *workqueue.Type
 }
 
+type no struct{}
+
+var okLabels = map[string]no{
+	"__address__":      {},
+	"__metrics_path__": {},
+	"__scheme__":       {},
+	"job":              {},
+
+	"__meta_kubernetes_service_label_app":                     {},
+	"__meta_kubernetes_service_label_monitoring_scope":        {},
+	"__meta_kubernetes_service_label_monitoring_sample_limit": {},
+	"__meta_kubernetes_service_label_service":                 {},
+	"__meta_kubernetes_service_label_release":                 {},
+	"__meta_kubernetes_service_label_env":                     {},
+	"__meta_kubernetes_endpoint_port_name":                    {},
+	"__meta_kubernetes_endpoint_address_target_kind":          {},
+	"__meta_kubernetes_endpoint_address_target_name":          {},
+	"__meta_kubernetes_namespace":                             {},
+	"__meta_kubernetes_service_name":                          {},
+	"__meta_kubernetes_pod_name":           {},
+	"__meta_kubernetes_pod_container_name": {},
+}
+
+func filter(ls model.LabelSet) model.LabelSet {
+	fls := model.LabelSet{}
+	for n, v := range ls {
+		_, ok := okLabels[string(n)]
+		if ok  {
+			fls[n] = v
+		}
+	}
+
+	return fls
+}
+
 // NewEndpoints returns a new endpoints discovery.
 func NewEndpoints(l log.Logger, svc, eps, pod cache.SharedInformer) *Endpoints {
 	if l == nil {
@@ -328,6 +363,11 @@ func (e *Endpoints) buildEndpoints(eps *apiv1.Endpoints) *targetgroup.Group {
 				tg.Targets = append(tg.Targets, target.Merge(podLabels(pe.pod)))
 			}
 		}
+	}
+
+	tg.Labels = filter(tg.Labels)
+	for t, ls := range tg.Targets {
+		tg.Targets[t] = filter(ls)
 	}
 
 	return tg
